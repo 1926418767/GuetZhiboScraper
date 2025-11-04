@@ -18,6 +18,7 @@ from selenium.webdriver.edge.options import Options
 
 class PptCrawlerApp:
     def __init__(self, root):
+        self.firstppt=True
         self.root = root
         self.root.title("课程爬取爬取")
         self.root.geometry("700x600")
@@ -96,39 +97,41 @@ class PptCrawlerApp:
 
     def start_crawling(self, cookie_str: str):
         try:
-            # 创建临时用户数据目录，避免与已有浏览器进程冲突
-            #self.temp_user_data_dir = tempfile.mkdtemp(prefix="selenium_edge_")
-            #print('开始初始化')
-            edge_options = Options()
-            edge_options.add_argument("--disable-blink-features=AutomationControlled")  # 避免被检测为自动化脚本
-            edge_options.add_argument(
-                "user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36 Edg/132.0.0.0")  # 模拟正常浏览器的User-Agent
-            #edge_options.add_argument("--headless=new")  # 启用无头模式
-            edge_options.add_argument("--disable-gpu")  # 禁用 GPU 加速
-            edge_options.add_argument("--remote-debugging-port=9222")  # 启用远程调试端口
-            edge_options.add_argument("--window-size=1920,1080")
-            service = Service(self.DRIVER_PATH)
-            self.driver = webdriver.Edge(service=service, options=edge_options)
+            if self.firstppt is True:
+                # 创建临时用户数据目录，避免与已有浏览器进程冲突
+                #self.temp_user_data_dir = tempfile.mkdtemp(prefix="selenium_edge_")
+                #print('开始初始化')
+                edge_options = Options()
+                edge_options.add_argument("--disable-blink-features=AutomationControlled")  # 避免被检测为自动化脚本
+                edge_options.add_argument(
+                    "user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36 Edg/132.0.0.0")  # 模拟正常浏览器的User-Agent
+                #edge_options.add_argument("--headless=new")  # 启用无头模式
+                edge_options.add_argument("--disable-gpu")  # 禁用 GPU 加速
+                edge_options.add_argument("--remote-debugging-port=9222")  # 启用远程调试端口
+                edge_options.add_argument("--window-size=1920,1080")
+                service = Service(self.DRIVER_PATH)
+                self.driver = webdriver.Edge(service=service, options=edge_options)
 
-            # 先打开域名主页，方便设置 cookie
-            self.driver.get(self.target_url)
-            time.sleep(3)
-            # 解析并添加 cookie
-            # 构建 cookie 列表
-            #print("开始添加cookie")
-            cookies = []
-            for item in cookie_str.split(";"):
-                item = item.strip()  # 去掉多余的空格
-                item = item.strip('\n')
-                if "=" in item:  # 确保 item 中有 "="
-                    key, value = item.split("=", 1)  # 使用 1 来限制分割成两个部分
-                    cookies.append({"name": key, "value": value, "domain": "guet.edu.cn", "path": "/"})
+                # 先打开域名主页，方便设置 cookie
+                self.driver.get(self.target_url)
+                time.sleep(3)
+                # 解析并添加 cookie
+                # 构建 cookie 列表
+                #print("开始添加cookie")
+                cookies = []
+                for item in cookie_str.split(";"):
+                    item = item.strip()  # 去掉多余的空格
+                    item = item.strip('\n')
+                    if "=" in item:  # 确保 item 中有 "="
+                        key, value = item.split("=", 1)  # 使用 1 来限制分割成两个部分
+                        cookies.append({"name": key, "value": value, "domain": "guet.edu.cn", "path": "/"})
 
-            # 输出 cookies 列表
-            #print(cookies)
+                # 输出 cookies 列表
+                #print(cookies)
 
-            for cookie in cookies:
-                self.driver.add_cookie(cookie)
+                for cookie in cookies:
+                    self.driver.add_cookie(cookie)
+
 
             self.driver.refresh()
             time.sleep(3)
@@ -261,16 +264,20 @@ class PptCrawlerApp:
                 self.select_replay_button.config(state='normal')
                 return
             # 3. 切到新窗口（总是最后一个）
-            WebDriverWait(self.driver, 10).until(lambda d: len(d.window_handles) > 1)
-            new_win = [h for h in self.driver.window_handles if h != parent][0]
-            self.driver.switch_to.window(new_win)
+            # WebDriverWait(self.driver, 10).until(lambda d: len(d.window_handles) > 1)
+            # new_win = [h for h in self.driver.window_handles if h != parent][0]
+            # self.driver.switch_to.window(new_win)
+
+            self.driver.switch_to.window(self.driver.window_handles[-1])
+
             time.sleep(3)
 
             # 4. 在新窗口做完事以后，先关闭它
             self.driver.close()
 
             # 5. 切回父窗口
-            self.driver.switch_to.window(parent)
+            #self.driver.switch_to.window(parent)
+            self.driver.switch_to.window(self.driver.window_handles[-1])
 
             # 6. 重新定位按钮并再次点击
             status_button = replay_item["element"].find_elements(By.TAG_NAME, "span")[4]
@@ -350,29 +357,36 @@ class PptCrawlerApp:
             messagebox.showinfo("完成", f"PPT 已保存为当前目录下的：{save_path}")
 
             # 结束时关闭浏览器并清理
-            self.cleanup_driver()
+            # self.cleanup_driver()
 
             # 重置 UI 状态
             self.progress_var.set(0)
             self.progress_label.config(text="0%")
-            self.start_button.config(state='normal')
+            self.start_button.config(state='active')
             self.select_course_button.config(state='disabled')
             self.select_replay_button.config(state='disabled')
             self.course_listbox.delete(0, 'end')
             self.replay_listbox.delete(0, 'end')
-            self.log("流程结束，可再次输入 Cookie 重试")
+            self.firstppt=False
+            self.log("流程结束，可再次重试")
+
         except Exception as ex:
             self.log(f"爬取过程中出错: {ex}")
             self.cleanup_driver()
             self.start_button.config(state='normal')
             self.select_course_button.config(state='disabled')
             self.select_replay_button.config(state='disabled')
-        self.driver.quit()
-        os.system("taskkill /F /IM msedge.exe")
-        # 然后结束主循环并退出程序
-        self.root.destroy()
-        # 如果希望彻底退出，避免残留线程，可再调用 sys.exit()
-        sys.exit(0)
+        # self.driver.quit()
+        # os.system("taskkill /F /IM msedge.exe")
+        # # 然后结束主循环并退出程序
+        # self.root.destroy()
+        # # 如果希望彻底退出，避免残留线程，可再调用 sys.exit()
+        # sys.exit(0)
+
+        self.driver.close()
+        self.driver.switch_to.window(self.driver.window_handles[-1])
+        self.driver.close()
+        self.driver.switch_to.window(self.driver.window_handles[-1])
 
 
 
@@ -381,6 +395,11 @@ class PptCrawlerApp:
         try:
             if self.driver:
                 self.driver.quit()
+                os.system("taskkill /F /IM msedge.exe")
+                # 然后结束主循环并退出程序
+                self.root.destroy()
+                # 如果希望彻底退出，避免残留线程，可再调用 sys.exit()
+                sys.exit(0)
         except:
             pass
 
