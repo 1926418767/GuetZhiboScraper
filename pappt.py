@@ -105,7 +105,7 @@ class PptCrawlerApp:
                 edge_options.add_argument("--disable-blink-features=AutomationControlled")  # 避免被检测为自动化脚本
                 edge_options.add_argument(
                     "user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36 Edg/132.0.0.0")  # 模拟正常浏览器的User-Agent
-                #edge_options.add_argument("--headless=new")  # 启用无头模式
+                edge_options.add_argument("--headless=new")  # 启用无头模式
                 edge_options.add_argument("--disable-gpu")  # 禁用 GPU 加速
                 edge_options.add_argument("--remote-debugging-port=9222")  # 启用远程调试端口
                 edge_options.add_argument("--window-size=1920,1080")
